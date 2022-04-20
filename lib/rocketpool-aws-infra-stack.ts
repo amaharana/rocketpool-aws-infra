@@ -15,6 +15,7 @@ export class RocketpoolAwsInfraStack extends Stack {
     const vpcSubnets = this.getSubnets();
     const instanceType = this.getInstanceType();
     const machineImage = this.getMachineImage();
+    const rootVolume = this.getBlockDevice();
 
     const ec2Instance = new ec2.Instance(this, `${STACK_RESOURCE_PREFIX}-ec2-instance`, {
       vpc,
@@ -23,6 +24,7 @@ export class RocketpoolAwsInfraStack extends Stack {
       securityGroup,
       instanceType,
       machineImage,
+      blockDevices: [rootVolume],
       keyName: 'ec2-key-pair',
     });
   }
@@ -35,6 +37,13 @@ export class RocketpoolAwsInfraStack extends Stack {
         { name: 'public', cidrMask: 24, subnetType: ec2.SubnetType.PUBLIC },
       ],
     });
+  }
+
+  private getBlockDevice(): ec2.BlockDevice {
+    return {
+      deviceName: '/dev/sda1', // Use the root device name from Step 1
+      volume: ec2.BlockDeviceVolume.ebs(250), // Override the volume size in Gibibytes (GiB)
+    };
   }
 
   private getMachineImage(): ec2.IMachineImage {
@@ -61,10 +70,35 @@ export class RocketpoolAwsInfraStack extends Stack {
     })
 
     webserverSG.addIngressRule(
+      // TODO: lock it down to home IP
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(22),
       'allow SSH access from anywhere'
     );
+
+    webserverSG.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(30303),
+      'ETH1 P2P TCP'
+    )
+
+    webserverSG.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.udp(30303),
+      'ETH1 P2P UDP'
+    )
+
+    webserverSG.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(9001),
+      'ETH2 P2P TCP'
+    )
+
+    webserverSG.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.udp(9001),
+      'ETH2 P2P UDP'
+    )
 
     return webserverSG;
   }
