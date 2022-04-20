@@ -1,7 +1,9 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import { UserData } from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
+import { readFileSync } from 'fs';
 import { STACK_RESOURCE_PREFIX } from './params';
 
 export class RocketpoolAwsInfraStack extends Stack {
@@ -16,7 +18,8 @@ export class RocketpoolAwsInfraStack extends Stack {
     const instanceType = this.getInstanceType();
     const machineImage = this.getMachineImage();
     const rootVolume = this.getBlockDevice();
-
+    const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
+    
     const ec2Instance = new ec2.Instance(this, `${STACK_RESOURCE_PREFIX}-ec2-instance`, {
       vpc,
       vpcSubnets,
@@ -26,6 +29,7 @@ export class RocketpoolAwsInfraStack extends Stack {
       machineImage,
       blockDevices: [rootVolume],
       keyName: 'ec2-key-pair',
+      userData: UserData.custom(userDataScript)
     });
   }
 
