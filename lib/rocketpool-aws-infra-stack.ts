@@ -4,7 +4,7 @@ import { UserData } from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { readFileSync } from 'fs';
-import { STACK_RESOURCE_PREFIX } from './params';
+import { LINUX_AMI_ID, AWS_REGION, STACK_RESOURCE_PREFIX, VOLUME_LABEL, VOLUME_SIZE_GB } from './params';
 
 export class RocketpoolAwsInfraStack extends Stack {
 
@@ -19,7 +19,7 @@ export class RocketpoolAwsInfraStack extends Stack {
     const machineImage = this.getMachineImage();
     const rootVolume = this.getBlockDevice();
     const userDataScript = readFileSync('./lib/user-data.sh', 'utf8');
-    
+
     const ec2Instance = new ec2.Instance(this, `${STACK_RESOURCE_PREFIX}-ec2-instance`, {
       vpc,
       vpcSubnets,
@@ -45,17 +45,17 @@ export class RocketpoolAwsInfraStack extends Stack {
 
   private getBlockDevice(): ec2.BlockDevice {
     return {
-      deviceName: '/dev/sda1', // Use the root device name from Step 1
-      volume: ec2.BlockDeviceVolume.ebs(250), // Override the volume size in Gibibytes (GiB)
+      deviceName: VOLUME_LABEL, // Use the root device name from Step 1
+      volume: ec2.BlockDeviceVolume.ebs(VOLUME_SIZE_GB), // Override the volume size in Gibibytes (GiB)
     };
   }
 
   private getMachineImage(): ec2.IMachineImage {
     return new ec2.GenericLinuxImage({
-      // https://ubuntu.com/server/docs/cloud-images/amazon-ec2
-      'us-west-2': 'ami-0974095049096f83a'
+      [AWS_REGION]: LINUX_AMI_ID
     })
   }
+
   private getInstanceType(): ec2.InstanceType {
     return ec2.InstanceType.of(
       ec2.InstanceClass.T2,
